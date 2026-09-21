@@ -1,0 +1,8 @@
+{
+  "name": "ielts-vocabulary-study-pad",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

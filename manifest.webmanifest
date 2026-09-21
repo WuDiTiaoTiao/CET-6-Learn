@@ -1,0 +1,11 @@
+{
+  "name": "IELTS Study Pad",
+  "short_name": "IELTS Pad",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f0e7",
+  "theme_color": "#f4f0e7",
+  "description": "用 Apple Pencil 练习 IELTS 词汇，并即时批改。"
+}
