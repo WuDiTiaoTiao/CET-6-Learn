@@ -1,5 +1,12 @@
 const LEVEL_IDS = new Set(["beginner", "intermediate", "advanced"]);
 
+export function buildMeaningOptions(cards, currentCard, limit = 4) {
+  const meanings = [currentCard.meaning, ...cards
+    .filter((card) => card !== currentCard && card.meaning !== currentCard.meaning)
+    .map((card) => card.meaning)];
+  return [...new Set(meanings)].slice(0, limit);
+}
+
 export function normalizeAnswer(value) {
   return String(value ?? "")
     .normalize("NFKC")
@@ -16,6 +23,13 @@ export function gradeAnswer(answer, expected) {
     status: normalized === normalizeAnswer(expected) ? "correct" : "wrong",
     normalized
   };
+}
+
+export function gradeChoice(answer, expected) {
+  const normalized = String(answer ?? "").normalize("NFKC").trim().replace(/\s+/g, " ");
+  const expectedNormalized = String(expected ?? "").normalize("NFKC").trim().replace(/\s+/g, " ");
+  if (!normalized) return { status: "empty", normalized };
+  return { status: normalized === expectedNormalized ? "correct" : "wrong", normalized };
 }
 
 export function confidenceStatus(confidence, threshold = 0.78) {
@@ -56,6 +70,8 @@ function validateCard(card, index) {
     word,
     meaning,
     level,
+    topic: String(card.topic ?? ""),
+    topic: String(card.topic ?? ""),
     phonetic: String(card.phonetic ?? ""),
     tags: Array.isArray(card.tags) ? card.tags : String(card.tags ?? "").split(";").map((tag) => tag.trim()).filter(Boolean),
     example: String(card.example ?? "")

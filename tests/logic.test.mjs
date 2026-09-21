@@ -1,13 +1,33 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildMeaningOptions,
   confidenceStatus,
+  gradeChoice,
   gradeAnswer,
   normalizeAnswer,
   parseVocabularyText,
   readStore,
   writeStore
 } from "../src/logic.js";
+
+test("builds a Chinese meaning choice list with the answer first", () => {
+  const cards = [
+    { word: "ocean", meaning: "海洋；大海" },
+    { word: "shore", meaning: "岸；滨" },
+    { word: "tide", meaning: "潮汐；潮流" },
+    { word: "coast", meaning: "海岸；海滨" }
+  ];
+  assert.deepEqual(buildMeaningOptions(cards, cards[0]), ["海洋；大海", "岸；滨", "潮汐；潮流", "海岸；海滨"]);
+});
+
+test("includes a computer-work programming vocabulary pack", async () => {
+  const { SEED_WORDS } = await import("../src/data.js");
+  const computerWords = SEED_WORDS.filter((card) => card.tags.includes("computer-work"));
+  assert.ok(computerWords.length >= 20);
+  assert.ok(computerWords.some((card) => card.word === "repository"));
+  assert.ok(computerWords.some((card) => card.word === "debugging"));
+});
 
 test("normalizes case, whitespace, apostrophes, and hyphens", () => {
   assert.equal(normalizeAnswer("  Well-being  "), "wellbeing");
@@ -19,6 +39,11 @@ test("grades an exact normalized answer", () => {
 
 test("marks a non-matching answer wrong", () => {
   assert.equal(gradeAnswer("shore", "ocean").status, "wrong");
+});
+
+test("grades a Chinese meaning choice without stripping Chinese characters", () => {
+  assert.deepEqual(gradeChoice(" 海洋；大海 ", "海洋；大海"), { status: "correct", normalized: "海洋;大海" });
+  assert.equal(gradeChoice("岸；滨", "海洋；大海").status, "wrong");
 });
 
 test("returns empty for a blank answer", () => {

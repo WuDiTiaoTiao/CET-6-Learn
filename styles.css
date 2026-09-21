@@ -79,6 +79,16 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
 .stat strong { display: block; font-size: 24px; }
 .stat span { color: var(--muted); font-size: 12px; }
 .sample-note { margin-top: 22px; color: var(--muted); font-size: 12px; }
+.topic-section { margin: 18px 0 24px; }
+.topic-card { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 20px 22px; border: 1px solid #bfd7d1; background: #edf6f2; box-shadow: var(--shadow); }
+.topic-card-copy { max-width: 720px; }
+.topic-card-copy .eyebrow { margin-bottom: 6px; }
+.topic-card h2 { margin: 0; font-size: 21px; }
+.topic-card p:not(.eyebrow) { margin: 7px 0 0; color: #52716c; font-size: 13px; line-height: 1.6; }
+.topic-card-side { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.topic-card-side strong { font-size: 20px; white-space: nowrap; }
+.topic-card-side strong small { color: var(--muted); font-size: 12px; font-weight: 500; }
+.topic-card-side span { color: var(--muted); font-size: 12px; white-space: nowrap; }
 
 .practice-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
 .practice-title { margin: 0; font-size: clamp(24px, 3.5vw, 38px); }
@@ -89,6 +99,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
 .mode-switch button[aria-pressed="true"] { color: var(--ink); background: var(--surface); box-shadow: 0 2px 7px rgba(58, 47, 33, 0.1); }
 .instruction-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; padding: 12px 15px; border: 1px solid #cbe0d9; background: var(--teal-soft); color: #25645f; font-size: 13px; }
 .instruction-bar strong { color: var(--ink); }
+.submission-banner { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -2px 0 14px; padding: 10px 14px; border: 1px solid #b6d5c3; background: var(--green-soft); color: #39714e; font-size: 13px; }
+.submission-banner strong { color: var(--green); }
 
 .worksheet { border: 1px solid var(--line-strong); background: rgba(255, 253, 248, 0.86); box-shadow: var(--shadow); }
 .worksheet-head { display: grid; grid-template-columns: 54px 1fr 1fr; min-height: 48px; align-items: center; border-bottom: 1px solid var(--line-strong); background: #eee8dd; color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -101,18 +113,26 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
 .row-number { padding: 15px 9px; border-right: 1px solid var(--line); color: var(--teal); font-size: 13px; font-variant-numeric: tabular-nums; }
 .prompt { padding: 15px 14px; }
 .prompt-meaning { font-size: 15px; font-weight: 700; line-height: 1.45; }
+.prompt-word { color: var(--ink); font-family: "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; font-size: clamp(22px, 2.2vw, 30px); font-weight: 700; line-height: 1.2; }
 .prompt-phonetic { margin-top: 7px; color: var(--muted); font-size: 12px; }
 .prompt-example { margin: 13px 0 0; color: #8d887d; font-size: 11px; line-height: 1.5; }
 .answer-cell { position: relative; min-width: 0; border-left: 1px solid var(--line); background: rgba(255, 255, 255, 0.22); overflow: hidden; }
 .answer-cell[data-status="correct"] { background: var(--green-soft); }
 .answer-cell[data-status="wrong"] { background: var(--coral-soft); }
 .answer-cell[data-status="uncertain"] { background: #fbf0d8; }
+.answer-cell[data-status="correct"] .answer-input,
+.answer-cell[data-status="correct"] .meaning-select { color: var(--green); border-bottom-color: var(--green); }
+.answer-cell[data-status="wrong"] .answer-input,
+.answer-cell[data-status="wrong"] .meaning-select { color: var(--coral); border-bottom-color: var(--coral); }
 .answer-canvas { position: absolute; inset: 8px 10px 38px; width: calc(100% - 20px); height: calc(100% - 46px); touch-action: none; }
 .answer-cell[data-mode="scribble"] .answer-canvas { pointer-events: none; opacity: 0; }
 .answer-input { position: absolute; left: 13px; right: 13px; top: 20px; width: calc(100% - 26px); padding: 8px 2px; border: 0; border-bottom: 2px solid rgba(117, 128, 123, 0.32); background: transparent; color: var(--ink); font-family: "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; font-size: clamp(20px, 2vw, 27px); font-weight: 650; }
 .answer-input:focus { border-bottom-color: var(--teal); outline: 0; }
 .answer-cell[data-mode="ink"] .answer-input { background: rgba(255, 253, 248, 0.84); font-family: inherit; font-size: 14px; font-weight: 600; }
 .answer-input::placeholder { color: #b6b0a6; font-family: inherit; font-size: 12px; font-weight: 500; }
+.meaning-select { position: absolute; left: 13px; right: 13px; top: 20px; width: calc(100% - 26px); min-height: 42px; padding: 8px 30px 8px 3px; border: 0; border-bottom: 2px solid rgba(117, 128, 123, 0.32); border-radius: 0; background: transparent; color: var(--ink); font-size: 14px; font-weight: 650; }
+.meaning-select:focus { border-bottom-color: var(--teal); outline: 0; }
+.answer-cell[data-exercise-mode="word-to-meaning"] .cell-tools { bottom: 8px; }
 .cell-tools { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cell-actions { display: flex; gap: 4px; }
 .cell-action { min-height: 25px; padding: 0 7px; border: 1px solid var(--line); border-radius: 5px; background: rgba(255, 253, 248, 0.88); color: var(--muted); font-size: 11px; }
@@ -147,6 +167,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
   .practice-actions { margin-top: 16px; justify-content: flex-start; }
   .level-grid { grid-template-columns: 1fr; }
   .level-card { min-height: 156px; }
+  .topic-card { display: block; }
+  .topic-card-side { justify-content: flex-start; margin-top: 16px; }
   .worksheet-head { grid-template-columns: 42px 1fr; }
   .worksheet-head span:nth-child(3) { display: none; }
   .worksheet-grid { grid-auto-flow: row; grid-template-columns: 1fr; grid-template-rows: none; }
@@ -155,6 +177,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
   .row-number { padding-inline: 8px; }
   .prompt, .answer-input { padding-inline: 10px; }
   .answer-input { left: 10px; right: 10px; width: calc(100% - 20px); }
+  .meaning-select { left: 10px; right: 10px; width: calc(100% - 20px); }
   .answer-canvas { inset-inline: 7px; width: calc(100% - 14px); }
 }
 
@@ -170,6 +193,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
   .prompt-phonetic, .prompt-example { display: none; }
   .prompt-meaning { font-size: 13px; }
   .answer-input { top: 16px; font-size: 19px; }
+  .meaning-select { top: 16px; font-size: 12px; }
+  .submission-banner { align-items: flex-start; flex-direction: column; }
   .cell-action { padding-inline: 5px; font-size: 10px; }
   .cell-feedback { max-width: 70px; }
 }

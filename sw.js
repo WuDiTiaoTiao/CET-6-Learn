@@ -1,4 +1,4 @@
-const CACHE_NAME = "ielts-study-pad-shell-v1";
+const CACHE_NAME = "ielts-study-pad-shell-v4";
 const SHELL = [
   "./",
   "./index.html",

@@ -1,6 +1,8 @@
 import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js";
 import {
   confidenceStatus,
+  buildMeaningOptions,
+  gradeChoice,
   gradeAnswer,
   parseVocabularyText,
   readStore,
@@ -23,10 +25,13 @@ let ocrWorkerPromise = null;
 let toastTimer = null;
 
 const saved = readStore(storage, STORAGE_KEY, {});
+const savedCards = Array.isArray(saved.cards) ? saved.cards : [];
+const mergedCards = new Map(SEED_WORDS.map((card) => [card.id, card]));
+savedCards.forEach((card) => mergedCards.set(card.id, card));
 const state = {
   view: "dashboard",
   settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) },
-  cards: Array.isArray(saved.cards) && saved.cards.length ? saved.cards : [...SEED_WORDS],
+  cards: [...mergedCards.values()],
   mistakes: Array.isArray(saved.mistakes) ? saved.mistakes : [],
   progress: saved.progress && typeof saved.progress === "object" ? saved.progress : {},
   session: null
@@ -70,6 +75,14 @@ function sampleCount(levelId) {
   return state.cards.filter((card) => card.level === levelId).length;
 }
 
+function topicCards(topic) {
+  return state.cards.filter((card) => card.topic === topic || card.tags?.includes(topic));
+}
+
+function topicMasteredCount(topic) {
+  return topicCards(topic).filter((card) => state.progress[card.id]?.correct > 0).length;
+}
+
 function levelCardMarkup(level) {
   const mastered = masteredCount(level.id);
   const available = sampleCount(level.id);
@@ -90,6 +103,24 @@ function levelCardMarkup(level) {
       <div class="level-footer">
         <span class="level-meta">${available} 张已加载</span>
         <button class="button small primary" data-action="start" data-level="${level.id}">开始练习</button>
+      </div>
+    </article>`;
+}
+
+function topicCardMarkup(topic) {
+  const available = topicCards(topic);
+  const mastered = topicMasteredCount(topic);
+  return `
+    <article class="topic-card">
+      <div class="topic-card-copy">
+        <p class="eyebrow">Topic pack · Computer work</p>
+        <h2>计算机工作 · 程序员常用英语</h2>
+        <p>覆盖办公协作、软件开发、Git、部署与技术沟通，按初级到高级混合练习。</p>
+      </div>
+      <div class="topic-card-side">
+        <strong>${mastered} <small>/ ${available.length} 已掌握</small></strong>
+        <span>内置 ${available.length} 词</span>
+        <button class="button small primary" data-action="start-topic" data-topic="computer-work">开始主题练习</button>
       </div>
     </article>`;
 }
@@ -126,6 +157,7 @@ function renderDashboard() {
         <p class="intro-note">横屏像一张双栏词汇表，竖屏自动收拢成单栏。Apple Pencil 可以直接使用随手写。</p>
       </div>
       <div class="level-grid">${Object.values(LEVELS).map(levelCardMarkup).join("")}</div>
+      <div class="topic-section">${topicCardMarkup("computer-work")}</div>
       <div class="stats-strip" aria-label="学习统计">
         <div class="stat"><strong>${totalCompleted}</strong><span>今日完成词数</span></div>
         <div class="stat"><strong>${state.settings.streak || 0}</strong><span>连续学习天数</span></div>
@@ -135,8 +167,8 @@ function renderDashboard() {
     </section>`);
 }
 
-function buildSession(levelId) {
-  const available = state.cards.filter((card) => card.level === levelId);
+function buildSession(levelId, topic = "") {
+  const available = topic ? topicCards(topic) : state.cards.filter((card) => card.level === levelId);
   const rotated = [...available].sort((a, b) => {
     const aScore = state.progress[a.id]?.correct || 0;
     const bScore = state.progress[b.id]?.correct || 0;
@@ -145,35 +177,50 @@ function buildSession(levelId) {
   const cards = rotated.slice(0, SESSION_SIZE);
   return {
     cards,
-    answers: Object.fromEntries(cards.map((card) => [card.id, { text: "", inkDataUrl: "", ocrConfidence: null, ocrCandidate: "", confirmed: false }])),
+    answers: Object.fromEntries(cards.map((card) => [card.id, { text: "", selectedMeaning: "", inkDataUrl: "", ocrConfidence: null, ocrCandidate: "", confirmed: false }])),
     results: {},
-    levelId
+    levelId,
+    topic
   };
 }
 
 function practiceMarkup() {
-  const level = LEVELS[state.session.levelId];
+  const level = state.session.topic ? { label: "主题词包", subtitle: "计算机工作 · 程序员英语" } : LEVELS[state.session.levelId];
   const mode = state.settings.inputMode;
+  const exerciseMode = state.settings.exerciseMode;
+  const isChoiceMode = exerciseMode === "word-to-meaning";
+  const submittedResults = Object.values(state.session.results);
+  const submittedCorrect = submittedResults.filter((result) => result.status === "correct").length;
+  const submissionBanner = state.session.submitted ? `
+        <div class="submission-banner">
+          <span><strong>已完成批改</strong> · ${submittedCorrect} / ${state.session.cards.length} 正确</span>
+          <button class="button small secondary" data-action="review">查看本组总结</button>
+        </div>` : "";
   return `
     <section class="view practice-view" data-input-mode="${mode}">
       <div class="practice-head">
         <div>
           <p class="eyebrow">${level.label} · ${level.subtitle}</p>
-          <h1 class="practice-title">看释义，写出英文单词</h1>
+          <h1 class="practice-title">${isChoiceMode ? "看英文，选择中文释义" : "看释义，写出英文单词"}</h1>
           <div class="practice-meta"><span>本组 ${state.session.cards.length} 词</span><span>·</span><span>第 1 页</span></div>
         </div>
         <div class="practice-actions">
-          <div class="mode-switch" aria-label="输入模式">
+          <div class="mode-switch exercise-switch" aria-label="练习方向">
+            <button data-action="exercise-mode" data-exercise-mode="meaning-to-word" aria-pressed="${exerciseMode === "meaning-to-word"}">写英文</button>
+            <button data-action="exercise-mode" data-exercise-mode="word-to-meaning" aria-pressed="${isChoiceMode}">选中文</button>
+          </div>
+          ${isChoiceMode ? "" : `<div class="mode-switch" aria-label="输入模式">
             <button data-action="mode" data-mode="scribble" aria-pressed="${mode === "scribble"}">随手写</button>
             <button data-action="mode" data-mode="ink" aria-pressed="${mode === "ink"}">保留笔迹</button>
-          </div>
+          </div>`}
           <button class="button" data-action="back">返回首页</button>
-          <button class="button primary" data-action="submit">提交批改</button>
+          <button class="button primary" data-action="submit">${state.session.submitted ? "再次批改" : "提交批改"}</button>
         </div>
       </div>
-      <div class="instruction-bar"><span><strong>${mode === "scribble" ? "用 Apple Pencil 直接书写" : "在格内书写，保留你的原笔迹"}</strong> · 每行一个答案</span><span>标准答案会在提交后显示</span></div>
+      <div class="instruction-bar"><span><strong>${isChoiceMode ? "根据英文单词选择中文释义" : mode === "scribble" ? "用 Apple Pencil 直接书写" : "在格内书写，保留你的原笔迹"}</strong> · 每行一个答案</span><span>标准答案会在提交后显示</span></div>
+      ${submissionBanner}
       <div class="worksheet" aria-label="IELTS 手写词汇表">
-        <div class="worksheet-head"><span>NO.</span><span>中文释义 / 语境</span><span>你的英文答案</span></div>
+        <div class="worksheet-head"><span>NO.</span><span>${isChoiceMode ? "英文单词 / 语境" : "中文释义 / 语境"}</span><span>${isChoiceMode ? "选择中文释义" : "你的英文答案"}</span></div>
         <div class="worksheet-grid">${state.session.cards.map((card, index) => rowMarkup(card, index)).join("")}</div>
       </div>
       <div class="practice-foot"><span>手写内容只保存在当前设备。</span><span>完成后可在错词本里重新练习。</span></div>
@@ -185,20 +232,33 @@ function rowMarkup(card, index) {
   const result = state.session.results[card.id];
   const status = result?.status || "idle";
   const feedback = result ? resultLabel(result) : "等待作答";
+  const isChoiceMode = state.settings.exerciseMode === "word-to-meaning";
+  const options = isChoiceMode ? buildMeaningOptions(state.session.cards, card) : [];
+  const choiceMarkup = isChoiceMode ? `
+    <select class="meaning-select" aria-label="第 ${index + 1} 题中文释义">
+      <option value="">选择中文释义</option>
+      ${options.map((meaning) => `<option value="${escapeHtml(meaning)}" ${answer.selectedMeaning === meaning ? "selected" : ""}>${escapeHtml(meaning)}</option>`).join("")}
+    </select>` : `
+    <canvas class="answer-canvas" aria-label="${escapeHtml(card.word)} 手写区域"></canvas>
+    <input class="answer-input" value="${escapeHtml(answer.text)}" placeholder="在这里写英文" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="第 ${index + 1} 题答案" />`;
+  const promptMarkup = isChoiceMode ? `
+        <div class="prompt-word">${escapeHtml(card.word)}</div>
+        <div class="prompt-phonetic">${escapeHtml(card.phonetic)}</div>
+        <p class="prompt-example">${escapeHtml(card.example)}</p>` : `
+        <div class="prompt-meaning">${escapeHtml(card.meaning)}</div>
+        <div class="prompt-phonetic">${escapeHtml(card.phonetic)}</div>
+        <p class="prompt-example">${escapeHtml(card.example)}</p>`;
   return `
     <article class="worksheet-row" data-row-id="${escapeHtml(card.id)}">
       <div class="row-number">${String(index + 1).padStart(2, "0")}</div>
       <div class="prompt">
-        <div class="prompt-meaning">${escapeHtml(card.meaning)}</div>
-        <div class="prompt-phonetic">${escapeHtml(card.phonetic)}</div>
-        <p class="prompt-example">${escapeHtml(card.example)}</p>
+        ${promptMarkup}
       </div>
-      <div class="answer-cell" data-mode="${state.settings.inputMode}" data-status="${status}">
-        <canvas class="answer-canvas" aria-label="${escapeHtml(card.word)} 手写区域"></canvas>
-        <input class="answer-input" value="${escapeHtml(answer.text)}" placeholder="在这里写英文" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="第 ${index + 1} 题答案" />
-        ${result?.status === "wrong" ? `<span class="correct-answer">正确答案：${escapeHtml(card.word)}</span>` : ""}
+      <div class="answer-cell" data-mode="${state.settings.inputMode}" data-exercise-mode="${state.settings.exerciseMode}" data-status="${status}">
+        ${choiceMarkup}
+        ${result?.status === "wrong" ? `<span class="correct-answer">正确答案：${escapeHtml(isChoiceMode ? card.meaning : card.word)}</span>` : ""}
         <div class="cell-tools">
-          <div class="cell-actions"><button class="cell-action" data-cell-action="clear">清空</button><button class="cell-action" data-cell-action="ocr">识别</button></div>
+          <div class="cell-actions"><button class="cell-action" data-cell-action="clear">${isChoiceMode ? "清除选择" : "清空"}</button>${isChoiceMode ? "" : `<button class="cell-action" data-cell-action="ocr">识别</button>`}</div>
           <span class="cell-feedback">${escapeHtml(feedback)}</span>
         </div>
       </div>
@@ -209,7 +269,7 @@ function resultLabel(result) {
   if (result.status === "correct") return "✓ 正确";
   if (result.status === "wrong") return "× 再记一次";
   if (result.status === "uncertain") return "？请确认识别";
-  return "请写下答案";
+  return state.settings.exerciseMode === "word-to-meaning" ? "请选择释义" : "请写下答案";
 }
 
 function renderPractice() {
@@ -231,7 +291,7 @@ function renderReview() {
       <div class="review-card">
         <div class="review-kicker">本组完成</div>
         <div class="review-score">${correct}<small> / ${results.length} 正确</small></div>
-        <p class="review-message">${uncertain ? `有 ${uncertain} 个答案需要确认识别结果。` : wrong.length ? "错词已经放入错词本，趁热再看一遍。" : incomplete.length ? `已完成 ${correct} 个，还有 ${incomplete.length} 个需要继续书写。` : "这一页全部通过，可以继续下一组。"}</p>
+        <p class="review-message">${uncertain ? `有 ${uncertain} 个答案需要确认识别结果。` : wrong.length ? "错词已经放入错词本，趁热再看一遍。" : incomplete.length ? `已完成 ${correct} 个，还有 ${incomplete.length} 个需要继续作答。` : "这一页全部通过，可以继续下一组。"}</p>
         ${incomplete.length ? `<div class="review-list">${incomplete.map((result) => `<div class="review-item"><span>${escapeHtml(result.word)} · ${resultLabel(result)}</span><strong>${escapeHtml(result.answer || "未填写")}</strong></div>`).join("")}</div>` : ""}
         <div class="review-actions">
           ${wrong.length ? `<button class="button secondary" data-action="retry">重练错词</button>` : ""}
@@ -311,9 +371,34 @@ function createInkController(canvas, onChange) {
 
 function mountAnswerCell(row, card) {
   const cell = row.querySelector(".answer-cell");
+  const answer = state.session.answers[card.id];
+  const select = row.querySelector(".meaning-select");
+  if (select) {
+    select.addEventListener("change", () => {
+      answer.selectedMeaning = select.value;
+      answer.text = select.value;
+      if (state.session.results[card.id]) {
+        delete state.session.results[card.id];
+        cell.dataset.status = "idle";
+        row.querySelector(".cell-feedback").textContent = "等待批改";
+        row.querySelector(".correct-answer")?.remove();
+      }
+      saveAppState();
+    });
+    row.querySelector('[data-cell-action="clear"]').addEventListener("click", () => {
+      select.value = "";
+      answer.selectedMeaning = "";
+      answer.text = "";
+      delete state.session.results[card.id];
+      cell.dataset.status = "idle";
+      row.querySelector(".cell-feedback").textContent = "等待作答";
+      row.querySelector(".correct-answer")?.remove();
+      saveAppState();
+    });
+    return;
+  }
   const input = row.querySelector(".answer-input");
   const canvas = row.querySelector(".answer-canvas");
-  const answer = state.session.answers[card.id];
   const ink = createInkController(canvas, () => {
     answer.inkDataUrl = ink.toDataUrl();
     saveAppState();
@@ -395,12 +480,17 @@ async function recognizeInk(dataUrl) {
 
 function gradeRow(card) {
   const answer = state.session.answers[card.id];
-  const text = answer.text.trim();
-  if (!text) return { status: "empty", word: card.word, answer: "" };
-  if (answer.ocrConfidence !== null && answer.ocrConfidence < OCR_THRESHOLD && !answer.confirmed) {
-    return { status: "uncertain", word: card.word, answer: text, confidence: answer.ocrConfidence };
+  if (state.settings.exerciseMode === "word-to-meaning") {
+    const selectedMeaning = answer.selectedMeaning.trim();
+    if (!selectedMeaning) return { status: "empty", word: card.word, answer: "", correctAnswer: card.meaning };
+    return { ...gradeChoice(selectedMeaning, card.meaning), word: card.word, answer: selectedMeaning, correctAnswer: card.meaning };
   }
-  return { ...gradeAnswer(text, card.word), word: card.word, answer: text, confidence: answer.ocrConfidence };
+  const text = answer.text.trim();
+  if (!text) return { status: "empty", word: card.word, answer: "", correctAnswer: card.word };
+  if (answer.ocrConfidence !== null && answer.ocrConfidence < OCR_THRESHOLD && !answer.confirmed) {
+    return { status: "uncertain", word: card.word, answer: text, confidence: answer.ocrConfidence, correctAnswer: card.word };
+  }
+  return { ...gradeAnswer(text, card.word), word: card.word, answer: text, confidence: answer.ocrConfidence, correctAnswer: card.word };
 }
 
 function updateRowFeedback(card, result) {
@@ -413,12 +503,13 @@ function updateRowFeedback(card, result) {
   if (result.status === "wrong") {
     const correct = document.createElement("span");
     correct.className = "correct-answer";
-    correct.textContent = `正确答案：${card.word}`;
+    correct.textContent = `正确答案：${result.correctAnswer || card.word}`;
     cell.append(correct);
   }
 }
 
 function submitSession() {
+  const wasSubmitted = state.session.submitted === true;
   state.session.results = {};
   state.session.cards.forEach((card) => {
     const result = gradeRow(card);
@@ -438,10 +529,11 @@ function submitSession() {
     state.settings.streak = state.settings.lastStudyDate === previousKey ? (state.settings.streak || 0) + 1 : 1;
     state.settings.lastStudyDate = now;
   }
-  state.settings.completedToday += state.session.cards.length;
+  if (!wasSubmitted) state.settings.completedToday += state.session.cards.length;
   saveAppState();
-  state.view = "review";
-  renderReview();
+  state.session.submitted = true;
+  state.view = "practice";
+  renderPractice();
 }
 
 function openMistakes() {
@@ -452,7 +544,7 @@ function openMistakes() {
   }
   state.session = {
     cards: cards.slice(0, SESSION_SIZE),
-    answers: Object.fromEntries(cards.slice(0, SESSION_SIZE).map((card) => [card.id, { text: "", inkDataUrl: "", ocrConfidence: null, ocrCandidate: "", confirmed: false }])),
+    answers: Object.fromEntries(cards.slice(0, SESSION_SIZE).map((card) => [card.id, { text: "", selectedMeaning: "", inkDataUrl: "", ocrConfidence: null, ocrCandidate: "", confirmed: false }])),
     results: {},
     levelId: cards[0].level
   };
@@ -476,8 +568,20 @@ function bindShellActions() {
         renderPractice();
       } else if (action === "submit") {
         submitSession();
+      } else if (action === "review") {
+        state.view = "review";
+        renderReview();
       } else if (action === "mode") {
         state.settings.inputMode = button.dataset.mode;
+        saveAppState();
+        renderPractice();
+      } else if (action === "exercise-mode") {
+        state.settings.exerciseMode = button.dataset.exerciseMode;
+        saveAppState();
+        renderPractice();
+      } else if (action === "start-topic") {
+        state.session = buildSession("", button.dataset.topic);
+        state.view = "practice";
         saveAppState();
         renderPractice();
       } else if (action === "mistakes") {
