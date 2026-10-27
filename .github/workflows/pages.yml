@@ -1,4 +1,4 @@
-name: Deploy IELTS Study Pad to GitHub Pages
+name: Deploy Kaoyan Vocabulary Study Pad to GitHub Pages
 
 on:
   push:

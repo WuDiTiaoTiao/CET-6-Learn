@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   buildMeaningOptions,
   confidenceStatus,
@@ -43,6 +44,18 @@ test("uses a dedicated postgraduate entrance exam vocabulary pack", async () => 
   assert.ok(examWords.some((card) => card.word === "phenomenon"));
   assert.ok(examWords.some((card) => card.word === "controversial"));
   assert.ok(!examWords.some((card) => card.word === "ocean"));
+});
+
+test("version-busts the PWA assets when switching the vocabulary catalog", async () => {
+  const [index, appSource] = await Promise.all([
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+    readFile(new URL("../src/app.js", import.meta.url), "utf8")
+  ]);
+
+  assert.match(index, /styles\.css\?v=kaoyan-1/);
+  assert.match(index, /src\/app\.js\?v=kaoyan-1/);
+  assert.match(appSource, /\.\/data\.js\?v=kaoyan-1/);
+  assert.match(appSource, /\.\/logic\.js\?v=kaoyan-1/);
 });
 
 test("normalizes case, whitespace, apostrophes, and hyphens", () => {

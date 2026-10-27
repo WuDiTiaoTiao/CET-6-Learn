@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js";
+import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js?v=kaoyan-1";
 import {
   confidenceStatus,
   buildMeaningOptions,
@@ -7,7 +7,7 @@ import {
   parseVocabularyText,
   readStore,
   writeStore
-} from "./logic.js";
+} from "./logic.js?v=kaoyan-1";
 
 const STORAGE_KEY = "kaoyan-study-pad-state-v1";
 const LEGACY_STORAGE_KEY = "ielts-study-pad-state-v1";
