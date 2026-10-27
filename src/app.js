@@ -9,7 +9,9 @@ import {
   writeStore
 } from "./logic.js";
 
-const STORAGE_KEY = "ielts-study-pad-state-v1";
+const STORAGE_KEY = "kaoyan-study-pad-state-v1";
+const LEGACY_STORAGE_KEY = "ielts-study-pad-state-v1";
+const CATALOG_VERSION = 2;
 const OCR_THRESHOLD = 0.78;
 const SESSION_SIZE = 10;
 
@@ -24,21 +26,24 @@ const storage = (() => {
 let ocrWorkerPromise = null;
 let toastTimer = null;
 
-const saved = readStore(storage, STORAGE_KEY, {});
-const savedCards = Array.isArray(saved.cards) ? saved.cards : [];
+const currentSaved = readStore(storage, STORAGE_KEY, null);
+const saved = currentSaved || readStore(storage, LEGACY_STORAGE_KEY, {});
+const savedCards = saved.catalogVersion === CATALOG_VERSION && Array.isArray(saved.cards) ? saved.cards : [];
 const mergedCards = new Map(SEED_WORDS.map((card) => [card.id, card]));
 savedCards.forEach((card) => mergedCards.set(card.id, card));
+const activeCardIds = new Set(mergedCards.keys());
 const state = {
   view: "dashboard",
   settings: { ...DEFAULT_SETTINGS, ...(saved.settings || {}) },
   cards: [...mergedCards.values()],
-  mistakes: Array.isArray(saved.mistakes) ? saved.mistakes : [],
+  mistakes: Array.isArray(saved.mistakes) ? saved.mistakes.filter((id) => activeCardIds.has(id)) : [],
   progress: saved.progress && typeof saved.progress === "object" ? saved.progress : {},
   session: null
 };
 
 function saveAppState() {
   writeStore(storage, STORAGE_KEY, {
+    catalogVersion: CATALOG_VERSION,
     settings: state.settings,
     cards: state.cards,
     mistakes: state.mistakes,
@@ -66,13 +71,16 @@ function showToast(message, tone = "normal") {
 }
 
 function masteredCount(levelId) {
-  return state.cards
-    .filter((card) => card.level === levelId)
+  return levelCards(levelId)
     .filter((card) => state.progress[card.id]?.correct > 0).length;
 }
 
 function sampleCount(levelId) {
-  return state.cards.filter((card) => card.level === levelId).length;
+  return levelCards(levelId).length;
+}
+
+function levelCards(levelId) {
+  return state.cards.filter((card) => card.level === levelId && !card.topic);
 }
 
 function topicCards(topic) {
@@ -130,8 +138,8 @@ function shell(content) {
     <div class="app-shell">
       <header class="topbar">
         <button class="brand button ghost" data-action="home" aria-label="回到首页">
-          <span class="brand-mark">I</span>
-          <span class="brand-copy"><strong>IELTS / STUDY PAD</strong><span>用手写把词汇变成记忆</span></span>
+          <span class="brand-mark">研</span>
+          <span class="brand-copy"><strong>考研英语 / STUDY PAD</strong><span>用手写把考研词汇变成记忆</span></span>
         </button>
         <div class="top-actions">
           <button class="button small" data-action="mistakes">错词本 · ${state.mistakes.length}</button>
@@ -150,9 +158,9 @@ function renderDashboard() {
     <section class="view dashboard-view">
       <div class="dashboard-intro">
         <div>
-          <p class="eyebrow">Daily vocabulary practice</p>
-          <h1 class="page-title">今天，从一页手写词卡开始。</h1>
-          <p class="page-lede">看中文释义，在留白里写下英文。每次批改都会留下你的学习轨迹。</p>
+          <p class="eyebrow">Postgraduate English vocabulary</p>
+          <h1 class="page-title">考研词汇，每天手写一页。</h1>
+          <p class="page-lede">从大纲基础词到阅读难词，看中文释义，在留白里写下英文。</p>
         </div>
         <p class="intro-note">横屏像一张双栏词汇表，竖屏自动收拢成单栏。Apple Pencil 可以直接使用随手写。</p>
       </div>
@@ -163,12 +171,12 @@ function renderDashboard() {
         <div class="stat"><strong>${state.settings.streak || 0}</strong><span>连续学习天数</span></div>
         <div class="stat"><strong>${state.mistakes.length}</strong><span>待复习错词</span></div>
       </div>
-      <p class="sample-note">当前内置一组可立即体验的高频样例词卡。导入完整词包后，分级目标会继续沿用同一套批改和复习逻辑。</p>
+      <p class="sample-note">当前内置三级考研高频样例词卡。导入完整考研词包后，分级目标会继续沿用同一套批改和复习逻辑。</p>
     </section>`);
 }
 
 function buildSession(levelId, topic = "") {
-  const available = topic ? topicCards(topic) : state.cards.filter((card) => card.level === levelId);
+  const available = topic ? topicCards(topic) : levelCards(levelId);
   const rotated = [...available].sort((a, b) => {
     const aScore = state.progress[a.id]?.correct || 0;
     const bScore = state.progress[b.id]?.correct || 0;
@@ -219,7 +227,7 @@ function practiceMarkup() {
       </div>
       <div class="instruction-bar"><span><strong>${isChoiceMode ? "根据英文单词选择中文释义" : mode === "scribble" ? "用 Apple Pencil 直接书写" : "在格内书写，保留你的原笔迹"}</strong> · 每行一个答案</span><span>标准答案会在提交后显示</span></div>
       ${submissionBanner}
-      <div class="worksheet" aria-label="IELTS 手写词汇表">
+      <div class="worksheet" aria-label="考研英语手写词汇表">
         <div class="worksheet-head"><span>NO.</span><span>${isChoiceMode ? "英文单词 / 语境" : "中文释义 / 语境"}</span><span>${isChoiceMode ? "选择中文释义" : "你的英文答案"}</span></div>
         <div class="worksheet-grid">${state.session.cards.map((card, index) => rowMarkup(card, index)).join("")}</div>
       </div>

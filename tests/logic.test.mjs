@@ -29,6 +29,22 @@ test("includes a computer-work programming vocabulary pack", async () => {
   assert.ok(computerWords.some((card) => card.word === "debugging"));
 });
 
+test("uses a dedicated postgraduate entrance exam vocabulary pack", async () => {
+  const { SEED_WORDS } = await import("../src/data.js");
+  const examWords = SEED_WORDS.filter((card) => !card.topic);
+
+  assert.ok(examWords.length >= 30);
+  assert.ok(examWords.every((card) => card.tags.includes("postgraduate-exam")));
+  assert.deepEqual(
+    new Set(examWords.map((card) => card.level)),
+    new Set(["beginner", "intermediate", "advanced"])
+  );
+  assert.ok(examWords.some((card) => card.word === "acquire"));
+  assert.ok(examWords.some((card) => card.word === "phenomenon"));
+  assert.ok(examWords.some((card) => card.word === "controversial"));
+  assert.ok(!examWords.some((card) => card.word === "ocean"));
+});
+
 test("normalizes case, whitespace, apostrophes, and hyphens", () => {
   assert.equal(normalizeAnswer("  Well-being  "), "wellbeing");
 });

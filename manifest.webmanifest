@@ -1,11 +1,11 @@
 {
-  "name": "IELTS Study Pad",
-  "short_name": "IELTS Pad",
+  "name": "考研词汇手写板",
+  "short_name": "考研词汇",
   "lang": "zh-CN",
   "start_url": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f4f0e7",
   "theme_color": "#f4f0e7",
-  "description": "用 Apple Pencil 练习 IELTS 词汇，并即时批改。"
+  "description": "用 Apple Pencil 练习考研英语词汇，并即时批改。"
 }

@@ -1,6 +1,6 @@
-# IELTS Study Pad
+# 考研词汇手写板
 
-一个适合 iPad Safari 的 IELTS 词汇手写练习 PWA。界面按照参考图做成“中文释义 + 英文填空格”的表格，每行都可以使用 Apple Pencil 随手写，也可以切换到保留真实笔迹的 OCR 模式。
+一个适合 iPad Safari 的考研英语词汇手写练习 PWA。界面按照参考图做成“中文释义 + 英文填空格”的表格，每行都可以使用 Apple Pencil 随手写，也可以切换到保留真实笔迹的 OCR 模式。
 
 ## 使用
 
@@ -16,13 +16,13 @@ OCR 模式首次使用会从 jsDelivr 加载 Tesseract.js 和英文识别模型�
 
 ## 导入完整词库
 
-页面内置一组可立即体验的样例词卡，并显示三级累计目标：初级 2,000、中级 4,500、高级约 8,500。首页另有“计算机工作 · 程序员常用英语”主题词包入口，覆盖办公协作、软件开发、Git、部署与技术沟通。点击首页“导入词包”可替换为完整词库。
+页面内置三级考研英语高频样例词卡，并显示三级累计目标：初级 2,000、中级 4,500、高级约 8,500。首页另有“计算机工作 · 程序员常用英语”主题词包入口，覆盖办公协作、软件开发、Git、部署与技术沟通。点击首页“导入词包”可加载完整考研词库。
 
 JSON 最小格式：
 
 ```json
 [
-  {"word":"ocean","meaning":"海洋；大海","level":"beginner","phonetic":"/ˈəʊʃən/","tags":["geography"],"example":"The ocean covers most of the Earth's surface."}
+  {"word":"acquire","meaning":"获得；学到","level":"beginner","phonetic":"/əˈkwaɪər/","tags":["postgraduate-exam"],"example":"Students acquire knowledge through practice."}
 ]
 ```
 
