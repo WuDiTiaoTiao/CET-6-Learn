@@ -112,6 +112,13 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
 .worksheet-row:nth-child(5), .worksheet-row:nth-child(10) { border-bottom: 0; }
 .row-number { padding: 15px 9px; border-right: 1px solid var(--line); color: var(--teal); font-size: 13px; font-variant-numeric: tabular-nums; }
 .prompt { padding: 15px 14px; }
+.prompt-head { display: flex; align-items: flex-start; gap: 8px; }
+.speak-action { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -2px; padding: 0; border: 1px solid #a8c9c2; border-radius: 50%; background: var(--teal-soft); color: var(--teal); }
+.speak-action:hover { border-color: var(--teal); background: #d1ece7; }
+.speak-action:active { transform: scale(0.95); }
+.speaker-icon { position: relative; display: block; width: 15px; height: 15px; }
+.speaker-icon::before { content: ""; position: absolute; left: 0; top: 4px; width: 8px; height: 8px; background: currentColor; clip-path: polygon(0 30%, 38% 30%, 100% 0, 100% 100%, 38% 70%, 0 70%); }
+.speaker-icon::after { content: ""; position: absolute; left: 8px; top: 2px; width: 6px; height: 11px; border: 1.5px solid currentColor; border-left: 0; border-top-color: transparent; border-bottom-color: transparent; border-radius: 0 100% 100% 0; }
 .prompt-meaning { font-size: 15px; font-weight: 700; line-height: 1.45; }
 .prompt-word { color: var(--ink); font-family: "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; font-size: clamp(22px, 2.2vw, 30px); font-weight: 700; line-height: 1.2; }
 .prompt-phonetic { margin-top: 7px; color: var(--muted); font-size: 12px; }
@@ -191,6 +198,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(21, 125, 122
   .stat:last-child { border-bottom: 0; }
   .worksheet-row { grid-template-columns: 34px minmax(100px, 0.8fr) minmax(142px, 1.2fr); min-height: 126px; }
   .prompt-phonetic, .prompt-example { display: none; }
+  .speak-action { width: 25px; height: 25px; }
   .prompt-meaning { font-size: 13px; }
   .answer-input { top: 16px; font-size: 19px; }
   .meaning-select { top: 16px; font-size: 12px; }

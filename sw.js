@@ -1,12 +1,12 @@
-const CACHE_NAME = "kaoyan-study-pad-shell-v1";
+const CACHE_NAME = "kaoyan-study-pad-shell-v2";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=kaoyan-1",
-  "./src/app.js?v=kaoyan-1",
-  "./src/logic.js?v=kaoyan-1",
-  "./src/data.js?v=kaoyan-1",
-  "./manifest.webmanifest?v=kaoyan-1"
+  "./styles.css?v=kaoyan-2",
+  "./src/app.js?v=kaoyan-2",
+  "./src/logic.js?v=kaoyan-2",
+  "./src/data.js?v=kaoyan-2",
+  "./manifest.webmanifest?v=kaoyan-2"
 ];
 
 self.addEventListener("install", (event) => {

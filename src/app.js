@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js?v=kaoyan-1";
+import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js?v=kaoyan-2";
 import {
   confidenceStatus,
   buildMeaningOptions,
@@ -7,7 +7,7 @@ import {
   parseVocabularyText,
   readStore,
   writeStore
-} from "./logic.js?v=kaoyan-1";
+} from "./logic.js?v=kaoyan-2";
 
 const STORAGE_KEY = "kaoyan-study-pad-state-v1";
 const LEGACY_STORAGE_KEY = "ielts-study-pad-state-v1";
@@ -68,6 +68,18 @@ function showToast(message, tone = "normal") {
   toast.textContent = message;
   document.body.append(toast);
   toastTimer = setTimeout(() => toast.remove(), 3600);
+}
+
+function speakWord(word) {
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+    showToast("当前浏览器不支持语音播放，请使用 iPad Safari。", "error");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = "en-US";
+  utterance.rate = 0.88;
+  window.speechSynthesis.speak(utterance);
 }
 
 function masteredCount(levelId) {
@@ -249,11 +261,11 @@ function rowMarkup(card, index) {
     </select>` : `
     <canvas class="answer-canvas" aria-label="${escapeHtml(card.word)} 手写区域"></canvas>
     <input class="answer-input" value="${escapeHtml(answer.text)}" placeholder="在这里写英文" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="第 ${index + 1} 题答案" />`;
-  const promptMarkup = isChoiceMode ? `
-        <div class="prompt-word">${escapeHtml(card.word)}</div>
-        <div class="prompt-phonetic">${escapeHtml(card.phonetic)}</div>
-        <p class="prompt-example">${escapeHtml(card.example)}</p>` : `
-        <div class="prompt-meaning">${escapeHtml(card.meaning)}</div>
+  const promptMarkup = `
+        <div class="prompt-head">
+          <button class="speak-action" type="button" data-cell-action="speak" data-word="${escapeHtml(card.word)}" aria-label="播放 ${escapeHtml(card.word)} 发音" title="播放英文发音"><span class="speaker-icon" aria-hidden="true"></span></button>
+          ${isChoiceMode ? `<div class="prompt-word">${escapeHtml(card.word)}</div>` : `<div class="prompt-meaning">${escapeHtml(card.meaning)}</div>`}
+        </div>
         <div class="prompt-phonetic">${escapeHtml(card.phonetic)}</div>
         <p class="prompt-example">${escapeHtml(card.example)}</p>`;
   return `
@@ -603,6 +615,9 @@ function bindShellActions() {
         app.querySelector("#import-file")?.click();
       }
     });
+  });
+  app.querySelectorAll('[data-cell-action="speak"]').forEach((button) => {
+    button.addEventListener("click", () => speakWord(button.dataset.word || ""));
   });
   const importInput = app.querySelector("#import-file");
   importInput?.addEventListener("change", async () => {

@@ -52,10 +52,22 @@ test("version-busts the PWA assets when switching the vocabulary catalog", async
     readFile(new URL("../src/app.js", import.meta.url), "utf8")
   ]);
 
-  assert.match(index, /styles\.css\?v=kaoyan-1/);
-  assert.match(index, /src\/app\.js\?v=kaoyan-1/);
-  assert.match(appSource, /\.\/data\.js\?v=kaoyan-1/);
-  assert.match(appSource, /\.\/logic\.js\?v=kaoyan-1/);
+  assert.match(index, /styles\.css\?v=kaoyan-2/);
+  assert.match(index, /src\/app\.js\?v=kaoyan-2/);
+  assert.match(appSource, /\.\/data\.js\?v=kaoyan-2/);
+  assert.match(appSource, /\.\/logic\.js\?v=kaoyan-2/);
+});
+
+test("adds a pronunciation control to each vocabulary prompt", async () => {
+  const [appSource, styles] = await Promise.all([
+    readFile(new URL("../src/app.js", import.meta.url), "utf8"),
+    readFile(new URL("../styles.css", import.meta.url), "utf8")
+  ]);
+
+  assert.match(appSource, /data-cell-action="speak"/);
+  assert.match(appSource, /speechSynthesis/);
+  assert.match(appSource, /lang = "en-US"/);
+  assert.match(styles, /\.speak-action/);
 });
 
 test("normalizes case, whitespace, apostrophes, and hyphens", () => {
