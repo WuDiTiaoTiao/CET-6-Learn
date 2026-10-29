@@ -22,12 +22,14 @@ test("builds a Chinese meaning choice list with the answer first", () => {
   assert.deepEqual(buildMeaningOptions(cards, cards[0]), ["海洋；大海", "岸；滨", "潮汐；潮流", "海岸；海滨"]);
 });
 
-test("includes a computer-work programming vocabulary pack", async () => {
-  const { SEED_WORDS } = await import("../src/data.js");
-  const computerWords = SEED_WORDS.filter((card) => card.tags.includes("computer-work"));
-  assert.ok(computerWords.length >= 20);
-  assert.ok(computerWords.some((card) => card.word === "repository"));
-  assert.ok(computerWords.some((card) => card.word === "debugging"));
+test("removes the programmer vocabulary pack from the catalog and dashboard", async () => {
+  const [{ SEED_WORDS }, appSource] = await Promise.all([
+    import("../src/data.js"),
+    readFile(new URL("../src/app.js", import.meta.url), "utf8")
+  ]);
+
+  assert.ok(SEED_WORDS.every((card) => !card.topic && !card.tags.includes("computer-work")));
+  assert.doesNotMatch(appSource, /computer-work|程序员常用英语|start-topic/);
 });
 
 test("uses a dedicated postgraduate entrance exam vocabulary pack", async () => {
@@ -52,10 +54,10 @@ test("version-busts the PWA assets when switching the vocabulary catalog", async
     readFile(new URL("../src/app.js", import.meta.url), "utf8")
   ]);
 
-  assert.match(index, /styles\.css\?v=kaoyan-2/);
-  assert.match(index, /src\/app\.js\?v=kaoyan-2/);
-  assert.match(appSource, /\.\/data\.js\?v=kaoyan-2/);
-  assert.match(appSource, /\.\/logic\.js\?v=kaoyan-2/);
+  assert.match(index, /styles\.css\?v=kaoyan-3/);
+  assert.match(index, /src\/app\.js\?v=kaoyan-3/);
+  assert.match(appSource, /\.\/data\.js\?v=kaoyan-3/);
+  assert.match(appSource, /\.\/logic\.js\?v=kaoyan-3/);
 });
 
 test("adds a pronunciation control to each vocabulary prompt", async () => {

@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js?v=kaoyan-2";
+import { DEFAULT_SETTINGS, LEVELS, SEED_WORDS } from "./data.js?v=kaoyan-3";
 import {
   confidenceStatus,
   buildMeaningOptions,
@@ -7,11 +7,11 @@ import {
   parseVocabularyText,
   readStore,
   writeStore
-} from "./logic.js?v=kaoyan-2";
+} from "./logic.js?v=kaoyan-3";
 
 const STORAGE_KEY = "kaoyan-study-pad-state-v1";
 const LEGACY_STORAGE_KEY = "ielts-study-pad-state-v1";
-const CATALOG_VERSION = 2;
+const CATALOG_VERSION = 3;
 const OCR_THRESHOLD = 0.78;
 const SESSION_SIZE = 10;
 
@@ -92,15 +92,7 @@ function sampleCount(levelId) {
 }
 
 function levelCards(levelId) {
-  return state.cards.filter((card) => card.level === levelId && !card.topic);
-}
-
-function topicCards(topic) {
-  return state.cards.filter((card) => card.topic === topic || card.tags?.includes(topic));
-}
-
-function topicMasteredCount(topic) {
-  return topicCards(topic).filter((card) => state.progress[card.id]?.correct > 0).length;
+  return state.cards.filter((card) => card.level === levelId);
 }
 
 function levelCardMarkup(level) {
@@ -123,24 +115,6 @@ function levelCardMarkup(level) {
       <div class="level-footer">
         <span class="level-meta">${available} 张已加载</span>
         <button class="button small primary" data-action="start" data-level="${level.id}">开始练习</button>
-      </div>
-    </article>`;
-}
-
-function topicCardMarkup(topic) {
-  const available = topicCards(topic);
-  const mastered = topicMasteredCount(topic);
-  return `
-    <article class="topic-card">
-      <div class="topic-card-copy">
-        <p class="eyebrow">Topic pack · Computer work</p>
-        <h2>计算机工作 · 程序员常用英语</h2>
-        <p>覆盖办公协作、软件开发、Git、部署与技术沟通，按初级到高级混合练习。</p>
-      </div>
-      <div class="topic-card-side">
-        <strong>${mastered} <small>/ ${available.length} 已掌握</small></strong>
-        <span>内置 ${available.length} 词</span>
-        <button class="button small primary" data-action="start-topic" data-topic="computer-work">开始主题练习</button>
       </div>
     </article>`;
 }
@@ -177,7 +151,6 @@ function renderDashboard() {
         <p class="intro-note">横屏像一张双栏词汇表，竖屏自动收拢成单栏。Apple Pencil 可以直接使用随手写。</p>
       </div>
       <div class="level-grid">${Object.values(LEVELS).map(levelCardMarkup).join("")}</div>
-      <div class="topic-section">${topicCardMarkup("computer-work")}</div>
       <div class="stats-strip" aria-label="学习统计">
         <div class="stat"><strong>${totalCompleted}</strong><span>今日完成词数</span></div>
         <div class="stat"><strong>${state.settings.streak || 0}</strong><span>连续学习天数</span></div>
@@ -187,8 +160,8 @@ function renderDashboard() {
     </section>`);
 }
 
-function buildSession(levelId, topic = "") {
-  const available = topic ? topicCards(topic) : levelCards(levelId);
+function buildSession(levelId) {
+  const available = levelCards(levelId);
   const rotated = [...available].sort((a, b) => {
     const aScore = state.progress[a.id]?.correct || 0;
     const bScore = state.progress[b.id]?.correct || 0;
@@ -199,13 +172,12 @@ function buildSession(levelId, topic = "") {
     cards,
     answers: Object.fromEntries(cards.map((card) => [card.id, { text: "", selectedMeaning: "", inkDataUrl: "", ocrConfidence: null, ocrCandidate: "", confirmed: false }])),
     results: {},
-    levelId,
-    topic
+    levelId
   };
 }
 
 function practiceMarkup() {
-  const level = state.session.topic ? { label: "主题词包", subtitle: "计算机工作 · 程序员英语" } : LEVELS[state.session.levelId];
+  const level = LEVELS[state.session.levelId];
   const mode = state.settings.inputMode;
   const exerciseMode = state.settings.exerciseMode;
   const isChoiceMode = exerciseMode === "word-to-meaning";
@@ -597,11 +569,6 @@ function bindShellActions() {
         renderPractice();
       } else if (action === "exercise-mode") {
         state.settings.exerciseMode = button.dataset.exerciseMode;
-        saveAppState();
-        renderPractice();
-      } else if (action === "start-topic") {
-        state.session = buildSession("", button.dataset.topic);
-        state.view = "practice";
         saveAppState();
         renderPractice();
       } else if (action === "mistakes") {
